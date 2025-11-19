@@ -17,3 +17,12 @@ data ResultadoResponse = ResultadoResponse {
 } deriving (Show, Generic)
 
 instance ToJSON ResultadoResponse where 
+
+data Cliente = Cliente {
+    id :: Int,
+    nome :: String,
+    cpf :: String
+} deriving (Show, Generic)
+
+instance FromJSON Cliente where 
+instance ToJSON Cliente where 
