@@ -1,8 +1,8 @@
-FROM haskell:9.6-bookworm AS build
+FROM haskell:9.6.7 AS build
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y postgresql-server-dev-14 && rm -rf /var/lib/apt/lists/*
 
 COPY projetoHello.cabal cabal.project ./  
 
