@@ -2,6 +2,8 @@ FROM haskell:9.6.7 AS build
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
+
 COPY projetoHello.cabal cabal.project ./  
 
 RUN cabal update
@@ -12,12 +14,12 @@ RUN cabal build --enable-relocatable
 
 FROM debian:bookworm-slim
 
-RUN apt-get update && apt-get install -y libgmp10 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y libgmp10 libpq5 && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-COPY --from=build /app/dist-newstyle/build/*/*/haskservant-*/x/haskservant/build/haskservant .
+COPY --from=build /app/dist-newstyle/build/*/*/projetoHello-*/x/projetoHello/build/projetoHello .
 
 EXPOSE 8080
 
-CMD ["/app/haskservant"]
+CMD ["/app/projetoHello"]
