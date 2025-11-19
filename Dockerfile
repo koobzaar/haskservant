@@ -2,7 +2,7 @@ FROM haskell:9.6.7 AS build
 
 WORKDIR /app
 
-COPY haskservant.cabal cabal.project ./  
+COPY projetoHello.cabal cabal.project ./  
 
 RUN cabal update
 

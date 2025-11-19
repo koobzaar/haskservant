@@ -1,0 +1,7 @@
+packages: .
+
+compiler: ghc-9.6.7
+
+package projetoHello
+  ghc-options: -Wall
+
