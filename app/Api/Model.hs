@@ -26,3 +26,9 @@ data Cliente = Cliente {
 
 instance FromJSON Cliente where 
 instance ToJSON Cliente where 
+
+data ClienteResponse = ClienteResponse {
+    clientes :: [Cliente]
+} deriving (Show, Generic)
+
+instance ToJSON ClienteResponse where

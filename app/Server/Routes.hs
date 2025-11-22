@@ -20,6 +20,13 @@ type API =
     :<|> "soma"  :> Verb 'OPTIONS 200 '[JSON] ()
     :<|> "cliente" :> ReqBody '[JSON] Cliente :> Post '[JSON] ResultadoResponse 
     :<|> "cliente"  :> Verb 'OPTIONS 200 '[JSON] ()
+    :<|> "clientes" :> Get '[JSON] ClienteResponse
+
+handlerClienteTodos :: Connection -> Handler ClienteResponse
+handlerClienteTodos conn = do 
+    res <- liftIO $ query_ conn "SELECT id, nome, cpf FROM Cliente" 
+    let result = map (\(id', nome', cpf') -> Cliente id' nome' cpf') res
+    pure (ClienteResponse result)
 
 handlerCliente :: Connection -> Cliente -> Handler ResultadoResponse
 handlerCliente conn cli = do 
@@ -34,12 +41,17 @@ handlerSoma (Calculadora x y) = pure (ResultadoResponse $ x + y)
 options :: Handler ()
 options = pure ()
 
--- Handler eh uma Monada que tem IO dentro
+-- Handler eh uma Monada que tem IO embutido
 handlerHello :: Handler String 
 handlerHello = pure "Ola, mundo!"
 
 server :: Connection -> Server API 
-server conn = handlerHello :<|> handlerSoma :<|> options :<|> handlerCliente conn :<|> options
+server conn = handlerHello 
+            :<|> handlerSoma 
+            :<|> options 
+            :<|> handlerCliente conn 
+            :<|> options 
+            :<|> handlerClienteTodos conn
 
 addCorsHeader :: Middleware
 addCorsHeader app' req resp =
