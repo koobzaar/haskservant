@@ -6,13 +6,11 @@ module Server.Routes where
 
 import Api.Model
 import Data.Proxy
-import Network.Wai.Middleware.Cors
 import Network.Wai
 import Servant.API.Sub
 import Servant.API
 import Servant.Server
 import Database.PostgreSQL.Simple
-import Control.Monad
 import Control.Monad.IO.Class
 import Control.Monad.Except
 
@@ -44,9 +42,9 @@ server :: Connection -> Server API
 server conn = handlerHello :<|> handlerSoma :<|> options :<|> handlerCliente conn :<|> options
 
 addCorsHeader :: Middleware
-addCorsHeader app req respond =
-  app req $ \res ->
-    respond $ mapResponseHeaders
+addCorsHeader app' req resp =
+  app' req $ \res ->
+    resp $ mapResponseHeaders
       ( \hs ->
           [ ("Access-Control-Allow-Origin", "*")
           , ("Access-Control-Allow-Headers", "Content-Type, Authorization")
