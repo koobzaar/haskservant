@@ -1,13 +1,317 @@
-<html>
-    <head>
-        <script src="index.js"></script>
-    </head>
-    <body>
-        <form>
-            N1: <input type="number" id="n1"><br>
-            N2: <input type="number" id="n2"><br>
-        </form>
-        <div id="resultado"></div>
-        <button id="btn">Soma</button>
-    </body>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciamento de Heróis e Itens (CRUD)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script defer src="index.js"></script>
+
+  <style>
+    :root {
+      --cor-fundo-principal: #121212;
+      --cor-fundo-card: #2c2c2c;
+      --cor-texto-principal: #e0e0e0;
+      --cor-texto-secundario: #a0a0a0;
+      --cor-primaria-acao: #4caf50;
+      --cor-primaria-hover: #66bb6a;
+      --cor-alerta: #ff9800;
+      --cor-erro: #f44336;
+      --cor-destaque-tabela: #3a3a3a;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Share Tech Mono', monospace, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--cor-fundo-principal);
+      color: var(--cor-texto-principal);
+      line-height: 1.5;
+    }
+
+    .page-wrapper {
+      max-width: 1200px;
+      margin: 60px auto;
+      padding: 0 24px;
+    }
+
+    h1::before {
+        content: '\2694\0020'; 
+        color: var(--cor-primaria-acao);
+        margin-right: 8px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: 42px;
+      color: var(--cor-primaria-acao);
+      text-shadow: 0 0 5px rgba(76, 175, 80, 0.5);
+    }
+
+    .subtitle {
+      margin: 0 0 32px;
+      font-size: 16px;
+      color: var(--cor-texto-secundario);
+    }
+
+    code {
+      background: var(--cor-fundo-card);
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 14px;
+      color: var(--cor-alerta);
+      border: 1px solid rgba(255, 152, 0, 0.3);
+    }
+
+    .card {
+      background: var(--cor-fundo-card);
+      border-radius: 12px;
+      padding: 30px;
+      box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
+      margin-bottom: 40px;
+      border: 2px solid var(--cor-destaque-tabela);
+      height: 100%; 
+    }
+
+    .card h2 {
+      margin-top: 0;
+      margin-bottom: 20px;
+      font-size: 24px;
+      color: var(--cor-texto-principal);
+      border-bottom: 1px dashed var(--cor-destaque-tabela);
+      padding-bottom: 10px;
+    }
+
+    .main-content-grid {
+      display: grid;
+      grid-template-columns: 1fr 2fr;
+      gap: 30px;
+      align-items: flex-start;
+      margin-bottom: 40px;
+    }
+
+    #veiculo-form {
+      display: grid;  
+      gap: 16px;
+      max-width: 100%;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 15px;
+      color: var(--cor-texto-secundario);
+      gap: 6px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      padding: 12px 14px;
+      border-radius: 6px;
+      border: 1px solid var(--cor-destaque-tabela);
+      font-size: 16px;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+      background: var(--cor-fundo-principal);
+      color: var(--cor-texto-principal);
+      font-family: inherit;
+    }
+
+    input[type="text"]:focus,
+    input[type="number"]:focus {
+      background: var(--cor-fundo-card);
+      border-color: var(--cor-primaria-acao);
+      box-shadow: 0 0 0 3px rgba(76, 175, 80, 0.3);
+    }
+
+    button[type="submit"] {
+      margin-top: 10px;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 8px;
+      background: var(--cor-primaria-acao);
+      color: var(--cor-fundo-principal);
+      font-size: 17px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s, box-shadow 0.2s;
+      width: 100%;
+      letter-spacing: 1px;
+    }
+
+    button[type="submit"]:hover {
+      background: var(--cor-primaria-hover);
+      box-shadow: 0 5px 15px rgba(76, 175, 80, 0.4);
+      transform: translateY(-2px);
+    }
+
+    button[type="submit"]:active {
+      transform: translateY(0);
+      box-shadow: none;
+    }
+
+    #mensagem {
+      margin-top: 15px;
+      font-size: 16px;
+      color: var(--cor-alerta);
+      font-weight: bold;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 15px;
+    }
+
+    .section-header h2 {
+      margin: 0;
+      font-size: 24px;
+      color: var(--cor-texto-principal);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--cor-fundo-card);
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--cor-destaque-tabela);
+    }
+
+    th,
+    td {
+      padding: 15px 18px;
+      font-size: 15px;
+      text-align: left;
+    }
+
+    th {
+      background: var(--cor-destaque-tabela);
+      color: var(--cor-primaria-acao);
+      border-bottom: 2px solid var(--cor-primaria-acao);
+      font-weight: bold;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    td {
+      border-bottom: 1px solid var(--cor-destaque-tabela);
+      color: var(--cor-texto-principal);
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--cor-fundo-card);
+    }
+
+    tbody tr:hover td {
+      background: rgba(76, 175, 80, 0.1);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: none;
+      font-size: 13px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.1s;
+      color: var(--cor-fundo-principal);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+    }
+
+    .btn-edit {
+      background: var(--cor-alerta);
+    }
+
+    .btn-delete {
+      background: var(--cor-erro);
+    }
+    
+    .btn-details {
+      background: #2196f3;
+    }
+
+    .empty-row td {
+      text-align: center;
+      color: var(--cor-texto-secundario);
+      padding: 20px;
+      font-size: 16px;
+    }
+    
+    @media (max-width: 900px) {
+        .main-content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+  </style>
+</head>
+<body>
+  <main class="page-wrapper">
+    <h1>Inventário de Aventura</h1>
+    <p class="subtitle">
+      Gerencie seu esquadrão de Heróis e Itens Raros. Endpoints: 
+      <code>/heroi</code> e <code>/inventario</code>.
+    </p>
+
+    <div class="main-content-grid">
+        
+        <section class="card">
+            <h2>Criar Novo Herói</h2>
+            <form id="heroi-form">
+                <label>
+                    Nome do Herói 
+                    <input type="text" id="nome" maxlength="15" placeholder="Ex: GANDALF" required>
+                </label>
+                <label>
+                    Classe
+                    <input type="text" id="classe" maxlength="50" placeholder="Ex: Mago da Luz" required>
+                </label>
+                <label>
+                    Nível
+                    <input type="number" id="nivel" min="1" max="99" placeholder="Ex: 50" required>
+                </label>
+                <button type="submit">Adicionar ao Esquadrão</button>
+            </form>
+            <div id="mensagem"></div>
+        </section>
+
+        <section class="card">
+            <div class="section-header">
+                <h2>Registro de Heróis</h2>
+            </div>
+
+            <table id="tabela-herois">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Nome do Herói</th>
+                        <th>Classe</th>
+                        <th>Nível</th>
+                        <th>Missões</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    </tbody>
+            </table>
+        </section>
+        
+    </div>
+    
+  </main>
+</body>
 </html>

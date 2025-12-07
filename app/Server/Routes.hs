@@ -1,69 +1,64 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE OverloadedStrings #-}
-module Server.Routes where 
+
+module Server.Routes where
+
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (ReaderT, asks)
+import Data.Text (Text)
+import Database.PostgreSQL.Simple (Connection, execute, query, query_, Only(..))
+import Servant
 
 import Api.Model
-import Data.Proxy
-import Network.Wai
-import Servant.API.Sub
-import Servant.API
-import Servant.Server
-import Database.PostgreSQL.Simple
-import Control.Monad.IO.Class
-import Control.Monad.Except
 
-type API = 
-         "hello" :> Get '[PlainText] String 
-    :<|> "soma" :> ReqBody '[JSON] Calculadora :> Post '[JSON] ResultadoResponse
-    :<|> "soma"  :> Verb 'OPTIONS 200 '[JSON] ()
-    :<|> "cliente" :> ReqBody '[JSON] Cliente :> Post '[JSON] ResultadoResponse 
-    :<|> "cliente"  :> Verb 'OPTIONS 200 '[JSON] ()
-    :<|> "clientes" :> Get '[JSON] ClienteResponse
+-- Definição da API
+type HeroisAPI =
+       "herois" :> Get '[JSON] Herois
+  :<|> "heroi" :> ReqBody '[JSON] NovoHeroi :> Post '[JSON] Resultado
+  :<|> "heroi" :> Capture "id" Int :> Get '[JSON] Heroi
+  :<|> "heroi" :> Capture "id" Int :> ReqBody '[JSON] Heroi :> Put '[JSON] ()
+  :<|> "heroi" :> Capture "id" Int :> Delete '[JSON] ()
 
-handlerClienteTodos :: Connection -> Handler ClienteResponse
-handlerClienteTodos conn = do 
-    res <- liftIO $ query_ conn "SELECT id, nome, cpf FROM Cliente" 
-    let result = map (\(id', nome', cpf') -> Cliente id' nome' cpf') res
-    pure (ClienteResponse result)
+-- Configuração do Handler com conexão ao banco
+type AppM = ReaderT Connection Handler
 
-handlerCliente :: Connection -> Cliente -> Handler ResultadoResponse
-handlerCliente conn cli = do 
-    res <- liftIO $ query conn "INSERT INTO Cliente (nome,cpf) VALUES (?,?) RETURNING id" (nome cli, cpf cli)
-    case res of 
-        [Only novoId] -> pure (ResultadoResponse $ novoId)
-        _ -> throwError err500
+server :: ServerT HeroisAPI AppM
+server = 
+       getHerois
+  :<|> postHeroi
+  :<|> getHeroiById
+  :<|> putHeroi
+  :<|> deleteHeroi
 
-handlerSoma :: Calculadora -> Handler ResultadoResponse
-handlerSoma (Calculadora x y) = pure (ResultadoResponse $ x + y)
+-- Implementação das rotas
 
-options :: Handler ()
-options = pure ()
+getHerois :: AppM Herois
+getHerois = do
+  conn <- asks id
+  rows <- liftIO $ query_ conn "SELECT id, nome, classe, nivel FROM Heroi"
+  return $ Herois rows
 
--- Handler eh uma Monada que tem IO embutido
-handlerHello :: Handler String 
-handlerHello = pure "Ola, mundo!"
+postHeroi :: NovoHeroi -> AppM Resultado
+postHeroi (NovoHeroi n c v) = do
+  conn <- asks id
+  [Only heroiId] <- liftIO $ query conn "INSERT INTO Heroi (nome, classe, nivel) VALUES (?, ?, ?) RETURNING id" (n, c, v)
+  return $ Resultado heroiId
 
-server :: Connection -> Server API 
-server conn = handlerHello 
-            :<|> handlerSoma 
-            :<|> options 
-            :<|> handlerCliente conn 
-            :<|> options 
-            :<|> handlerClienteTodos conn
+getHeroiById :: Int -> AppM Heroi
+getHeroiById heroiId = do
+  conn <- asks id
+  [heroi] <- liftIO $ query conn "SELECT id, nome, classe, nivel FROM Heroi WHERE id = ?" (Only heroiId)
+  return heroi
 
-addCorsHeader :: Middleware
-addCorsHeader app' req resp =
-  app' req $ \res ->
-    resp $ mapResponseHeaders
-      ( \hs ->
-          [ ("Access-Control-Allow-Origin", "*")
-          , ("Access-Control-Allow-Headers", "Content-Type, Authorization")
-          , ("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-          ] ++ hs
-      )
-      res
+putHeroi :: Int -> Heroi -> AppM ()
+putHeroi heroiId (Heroi _ n c v) = do
+  conn <- asks id
+  _ <- liftIO $ execute conn "UPDATE Heroi SET nome = ?, classe = ?, nivel = ? WHERE id = ?" (n, c, v, heroiId)
+  return ()
 
-app :: Connection -> Application 
-app conn = addCorsHeader (serve (Proxy @API) (server conn))
+deleteHeroi :: Int -> AppM ()
+deleteHeroi heroiId = do
+  conn <- asks id
+  _ <- liftIO $ execute conn "DELETE FROM Heroi WHERE id = ?" (Only heroiId)
+  return ()

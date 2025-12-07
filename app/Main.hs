@@ -1,30 +1,43 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Main (main) where
 
-import Server.Routes
-import Network.Wai.Handler.Warp
-import Control.Monad
-import Database.PostgreSQL.Simple
-import Database.PostgreSQL.Simple.Types 
-import qualified Data.ByteString.Char8 as BS
+module Main where
 
-runMigration :: Connection -> FilePath -> IO ()
-runMigration conn fp = do
-  sql <- readFile fp
-  void $ execute_ conn (Query $ BS.pack sql)
+import Network.Wai (Application)
+import Network.Wai.Handler.Warp (run)
+import Network.Wai.Middleware.Cors (cors, simpleCorsResourcePolicy, corsMethods, corsRequestHeaders)
+import Servant
+import Database.PostgreSQL.Simple (connectPostgreSQL, Connection)
+import Control.Monad.Reader (runReaderT)
 
+-- Importando seus módulos
+import Server.Routes (HeroisAPI, server, AppM)
+
+-- Proxy da API
+heroisAPI :: Proxy HeroisAPI
+heroisAPI = Proxy
+
+-- Função Principal
 main :: IO ()
-main = do 
-    putStrLn "Servidor rodando na porta 8080"
+main = do
+    putStrLn "Conectando ao banco de dados..."
+    -- Graças ao OverloadedStrings, este texto vira ByteString automaticamente
+    conn <- connectPostgreSQL "host=localhost dbname=testdb user=testuser password=testpassword"
 
-    conn <- connectPostgreSQL
-      "host=dpg-d4f2e48gjchc73fjtkmg-a.oregon-postgres.render.com \
-      \ port=5432 \
-      \ dbname=haskads \
-      \ user=haskads_user \
-      \ password=3zUjYzOhsaPLKnQaWeUGVcYIJl1uilDu \
-      \ sslmode=require"
+    putStrLn "Iniciando servidor na porta 8080..."
+    run 8080 (myCors $ app conn)
 
-    runMigration conn "migration.sql"
+-- Configuração do CORS
+myCors :: Application -> Application
+myCors = cors (const $ Just policy)
+  where
+    policy = simpleCorsResourcePolicy
+      { corsMethods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"] 
+      , corsRequestHeaders = ["Content-Type"]
+      }
 
-    run 8080 (app conn)
+-- Aplicação Servant
+app :: Connection -> Application
+app conn = serve heroisAPI $ hoistServer heroisAPI (nt conn) server
+  where
+    nt :: Connection -> AppM a -> Handler a
+    nt c action = runReaderT action c

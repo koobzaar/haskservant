@@ -1,34 +1,50 @@
 {-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DuplicateRecordFields #-} 
+
 module Api.Model where
 
 import Data.Aeson
+import Data.Text (Text)
 import GHC.Generics
+import Database.PostgreSQL.Simple.FromRow
 
-data Calculadora = Calculadora {
-    n1 :: Int,
-    n2 :: Int 
-} deriving (Show, Generic)
+data Heroi = Heroi
+  { idHeroi :: Int,
+    nome :: Text,
+    classe :: Text,
+    nivel :: Int
+  }
+  deriving (Show, Generic)
 
-instance FromJSON Calculadora where 
-instance ToJSON Calculadora where 
+instance FromJSON Heroi
+instance ToJSON Heroi
 
-data ResultadoResponse = ResultadoResponse {
-    resultado :: Int
-} deriving (Show, Generic)
+instance FromRow Heroi where
+  fromRow = Heroi <$> field <*> field <*> field <*> field
 
-instance ToJSON ResultadoResponse where 
+data Herois = Herois
+  { herois :: [Heroi]
+  }
+  deriving (Show, Generic)
 
-data Cliente = Cliente {
-    id :: Int,
-    nome :: String,
-    cpf :: String
-} deriving (Show, Generic)
+instance FromJSON Herois
+instance ToJSON Herois
 
-instance FromJSON Cliente where 
-instance ToJSON Cliente where 
+data NovoHeroi = NovoHeroi
+  { nome :: Text,
+    classe :: Text,
+    nivel :: Int
+  }
+  deriving (Show, Generic)
 
-data ClienteResponse = ClienteResponse {
-    clientes :: [Cliente]
-} deriving (Show, Generic)
+instance FromJSON NovoHeroi
+instance ToJSON NovoHeroi
 
-instance ToJSON ClienteResponse where
+data Resultado = Resultado
+  { resultado :: Int
+  }
+  deriving (Show, Generic)
+
+instance FromJSON Resultado
+instance ToJSON Resultado
